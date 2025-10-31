@@ -173,8 +173,6 @@ MC_POLICY_FILE = os.path.join(models_dir, "mc_policy.pkl")
 with open(MC_QFILE, 'wb') as f:
     pickle.dump(dict(mc_Q), f)
 print(f"Huấn luyện hoàn tất. Q-table được lưu tại: {MC_QFILE}")
-<<<<<<< Updated upstream
-=======
 
 with open(MC_RETURNS_FILE, 'wb') as f:
     pickle.dump(dict(mc_Returns), f)
@@ -183,4 +181,3 @@ print(f"Lịch sử Returns được lưu tại: {MC_RETURNS_FILE}")
 with open(MC_POLICY_FILE, 'wb') as f:
     pickle.dump(dict(mc_policy), f)
 print(f"Chính sách Policy được lưu tại: {MC_POLICY_FILE}")
->>>>>>> Stashed changes
