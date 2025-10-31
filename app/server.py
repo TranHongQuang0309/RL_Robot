@@ -45,14 +45,62 @@ os.makedirs(models_dir, exist_ok=True)
 # Load MC
 # ---------------------------
 mc_qfile = os.path.join(models_dir, "mc_qtable.pkl")
-if os.path.exists(mc_qfile):
-    with open(mc_qfile, "rb") as f:
-        loaded_mc_Q = pickle.load(f)
-    mc_Q = defaultdict(lambda: {a: 0.0 for a in ['up', 'right', 'down', 'left']})
-    mc_Q.update(loaded_mc_Q)
-else:
-    mc_Q = defaultdict(lambda: {a: 0.0 for a in ['up', 'right', 'down', 'left']})
+mc_returns_file = os.path.join(models_dir, "mc_returns.pkl") 
+mc_policy_file = os.path.join(models_dir, "mc_policy.pkl")   
 
+actions = ['up', 'right', 'down', 'left'] # <<< Đưa lên đây để dùng chung
+num_actions = len(actions)              
+
+mc_Q = defaultdict(lambda: {a: 0.0 for a in actions})
+mc_Returns = defaultdict(list)          
+mc_policy = defaultdict(lambda: random.choice(actions))
+
+if os.path.exists(mc_policy_file):
+     try:
+         with open(mc_policy_file, "rb") as f:
+             loaded_mc_policy = pickle.load(f)
+         if isinstance(loaded_mc_policy, dict):
+             try:
+                 norm = _normalize_loaded_policy(loaded_mc_policy, actions)
+                 mc_policy.update(norm)
+                 print(f" Đã tải Policy MC (normalized) từ file: {mc_policy_file}")
+             except Exception as e:
+                 print(f" Lỗi khi chuẩn hóa Policy MC: {e}. Không cập nhật mc_policy.")
+         else:
+             print(f" Định dạng file Policy MC không đúng: {mc_policy_file}")
+     except Exception as e:
+          print(f" Lỗi khi tải Policy MC: {e}")
+else:
+      print(f" File Policy MC {mc_policy_file} không tồn tại.")
+if os.path.exists(mc_qfile):
+    try:
+        with open(mc_qfile, "rb") as f:
+            loaded_mc_Q = pickle.load(f)
+            # Validate loaded data if necessary
+            if isinstance(loaded_mc_Q, dict):
+                 mc_Q.update(loaded_mc_Q)
+                 print(f" Đã tải Q-table MC từ file: {mc_qfile}")
+            else:
+                print(f" Định dạng file Q-table MC không đúng: {mc_qfile}")
+    except Exception as e:
+        print(f" Lỗi khi tải Q-table MC: {e}")
+else:
+    print(f" File Q-table MC {mc_qfile} không tồn tại.")
+
+# <<< THÊM MỚI: Tải mc_Returns
+if os.path.exists(mc_returns_file):
+    try:
+        with open(mc_returns_file, "rb") as f:
+            loaded_mc_Returns = pickle.load(f)
+            if isinstance(loaded_mc_Returns, dict):
+                mc_Returns.update(loaded_mc_Returns)
+                print(f" Đã tải Returns MC từ file: {mc_returns_file}")
+            else:
+                 print(f" Định dạng file Returns MC không đúng: {mc_returns_file}")
+    except Exception as e:
+        print(f" Lỗi khi tải Returns MC: {e}")
+else:
+     print(f" File Returns MC {mc_returns_file} không tồn tại (cần cho huấn luyện online).")
 # ---------------------------
 # Load Q-learning
 # ---------------------------
@@ -63,9 +111,13 @@ if os.path.exists(QL_QFILE_OFFLINE):
     with open(QL_QFILE_OFFLINE, "rb") as f:
         loaded_ql_Q = pickle.load(f)
     ql_Q.update(loaded_ql_Q)
-    print(f"✅ Đã tải Q-table Q-Learning từ file OFFLINE: {QL_QFILE_OFFLINE}")
+    print(f" Đã tải Q-table Q-Learning từ file OFFLINE: {QL_QFILE_OFFLINE}")
 else:
+<<<<<<< Updated upstream
     print(f"⚠️ KHÔNG tìm thấy file Q-table OFFLINE: {QL_QFILE_OFFLINE}. Bắt đầu với Q-table rỗng.")
+=======
+    print(f" File Q-table Q-Learning {QL_QFILE_OFFLINE} không tồn tại. Hãy huấn luyện trước.")
+>>>>>>> Stashed changes
 
 # ---------------------------
 # Load SARSA
@@ -76,8 +128,15 @@ if os.path.exists(sarsa_qfile):
         loaded_sarsa_Q = pickle.load(f)
     sarsa_Q = defaultdict(lambda: {a: 0.0 for a in ['up', 'right', 'down', 'left']})
     sarsa_Q.update(loaded_sarsa_Q)
+<<<<<<< Updated upstream
 else:
     sarsa_Q = defaultdict(lambda: {a: 0.0 for a in ['up', 'right', 'down', 'left']})
+=======
+    print(f" Đã tải Q-table SARSA, tổng số state đã biết = {len(sarsa_Q)}")
+else:
+    sarsa_Q = defaultdict(lambda: {a: 0.0 for a in ['up', 'right', 'down', 'left']})
+    print(" Không tìm thấy Q-table SARSA, tạo mới.")
+>>>>>>> Stashed changes
 
 # ---------------------------
 # Load A2C
@@ -91,9 +150,18 @@ if os.path.exists(a2c_model_file):
     try:
         a2c_model.load_state_dict(torch.load(a2c_model_file))
         a2c_model.eval()
+<<<<<<< Updated upstream
         print("✅ A2C model loaded successfully")
     except RuntimeError:
         print("⚠️ Không load được A2C checkpoint. Sẽ dùng model mới.")
+=======
+        a2c_model_loaded = True
+        print(" A2C model loaded successfully")
+    except RuntimeError as e:
+        print(f" Không load được A2C checkpoint: {str(e)}. Sẽ dùng model mới.")
+else:
+    print(f" File A2C model {a2c_model_file} không tồn tại. Hãy huấn luyện trước bằng train_a2c.py.")
+>>>>>>> Stashed changes
 
 # ---------------------------
 # RL params
@@ -103,6 +171,7 @@ alpha, gamma = 0.1, 0.99
 epsilon = 1.0
 epsilon_min = 0.01
 epsilon_decay = 0.995
+trajectory = []
 
 # ---------------------------
 # Request Models
@@ -430,7 +499,12 @@ def run_mc_greedy():
 
 @app.post("/step_algorithm")
 def step_algorithm(req: AlgorithmRequest):
+<<<<<<< Updated upstream
     global epsilon, mc_Q
+=======
+    global epsilon, trajectory, mc_Q
+    global trajectory, mc_Q, mc_Returns, mc_policy
+>>>>>>> Stashed changes
     algo = req.algorithm
     with _env_lock:
         state_xy = env.get_state()
@@ -442,6 +516,7 @@ def step_algorithm(req: AlgorithmRequest):
                            [manhattan_distance(state_xy, env.goal)] if len(env.visited_waypoints) == len(env.waypoints) else [float('inf')])
         full_state = (state_xy[0], state_xy[1], visited_code, dist_to_next)
         if algo == "MC":
+<<<<<<< Updated upstream
             if np.random.rand() > epsilon:
                 if full_state in mc_Q and any(mc_Q[full_state].values()):
                     action_name = max(mc_Q[full_state], key=mc_Q[full_state].get)
@@ -464,9 +539,21 @@ def step_algorithm(req: AlgorithmRequest):
             next_dist_to_next = min([manhattan_distance(next_state, wp) for wp in env.waypoints if wp not in env.visited_waypoints] + 
                                     [manhattan_distance(next_state, env.goal)] if len(env.visited_waypoints) == len(env.waypoints) else [float('inf')])
             next_state_tuple = (next_state[0], next_state[1], next_visited_code, next_dist_to_next)
+=======
+           # 1. Chọn hành động theo chính sách pi (tham lam 100%)
+            # <<< THAY ĐỔI: Lấy trực tiếp hành động từ mc_policy >>>
+            action_name = mc_policy[full_state] 
+
+            action_idx = actions.index(action_name)
+            next_state, r, done, _ = env.step(action_idx)
+
+            # 2. Append vào trajectory
+>>>>>>> Stashed changes
             trajectory.append((full_state, action_name, r))
+
             reward = r
             state_xy = next_state
+<<<<<<< Updated upstream
             if done or env.steps >= env.max_steps:
                 G = 0
                 visited_state_actions = set()
@@ -479,6 +566,34 @@ def step_algorithm(req: AlgorithmRequest):
                         mc_Q[state][action] += alpha * (G - old_q)
                 trajectory = []
             epsilon = max(epsilon_min, epsilon * epsilon_decay)
+=======
+
+            # 3. Nếu hồi kết thúc -> Cập nhật theo MC ES
+            if done or env.steps >= env.max_steps:
+                G = 0
+                visited_state_actions = set()
+                # Duyệt ngược trajectory hiện tại
+                for state_update, action_update, r_step in reversed(trajectory):
+                    G = r_step + gamma * G
+                    state_action_update = (state_update, action_update)
+                    if state_action_update not in visited_state_actions:
+                        visited_state_actions.add(state_action_update)
+
+                        # <<< Cập nhật bằng average(Returns) và pi <- argmax Q >>>
+                        # 1. Append G to Returns
+                        mc_Returns[state_action_update].append(G)
+                        # 2. Q <- average(Returns)
+                        mc_Q[state_update][action_update] = np.mean(mc_Returns[state_action_update])
+                        # 3. Cập nhật pi(St) <- argmax Q (Tường minh)
+                        best_action_update = max(mc_Q[state_update], key=mc_Q[state_update].get)
+                        mc_policy[state_update] = best_action_update # Gán hành động tốt nhất
+                        # <<< KẾT THÚC CẬP NHẬT >>>
+
+                print(f"MC ES episode finished (online). Updated Q and Policy for {len(visited_state_actions)} first-visit pairs.")
+                trajectory = [] # Reset trajectory cho hồi mới
+                
+                
+>>>>>>> Stashed changes
         elif algo == "Q-learning":
             if full_state in ql_Q and any(ql_Q[full_state].values()):
                 action_name = max(ql_Q[full_state], key=ql_Q[full_state].get)
@@ -568,10 +683,30 @@ def save_qlearning():
 
 @app.post("/save_mc")
 def save_mc():
+<<<<<<< Updated upstream
     with open(os.path.join(models_dir, 'mc_qtable.pkl'), 'wb') as f:
         pickle.dump(mc_Q, f)
     return {"status": "MC Q-table saved"}
+=======
+    global mc_Q, mc_Returns, mc_policy
+    try:
+        mc_q_path = os.path.join(models_dir, 'mc_qtable.pkl')
+        mc_returns_path = os.path.join(models_dir, 'mc_returns.pkl')
+        mc_policy_path = os.path.join(models_dir, 'mc_policy.pkl')
+>>>>>>> Stashed changes
 
+        # Lưu dưới dạng dict thường để tránh lỗi pickle defaultdict
+        with open(mc_q_path, 'wb') as f:
+            pickle.dump(dict(mc_Q), f)
+        with open(mc_returns_path, 'wb') as f:
+            pickle.dump(dict(mc_Returns), f)
+        with open(mc_policy_path, 'wb') as f:
+            pickle.dump(dict(mc_policy), f)
+
+        return {"status": f"MC Q-table, Returns, và Policy saved to {models_dir}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving MC models: {str(e)}")
+    
 @app.post("/save_sarsa")
 def save_sarsa():
     with open(os.path.join(models_dir, 'sarsa_qtable.pkl'), 'wb') as f:
